@@ -1,0 +1,36 @@
+<div class="ccas-editor">
+<p class="hint">{{localize "CCAS.Editor.Hint"}}</p>
+<div class="ccas-panels">
+  {{#each cursors}}
+  <fieldset class="ccas-panel" data-key="{{this.key}}">
+    <legend>{{this.label}}</legend>
+    {{#if this.src}}
+    <div class="ccas-stage">
+      <img src="{{this.src}}" draggable="false" alt="{{this.label}}">
+      <div class="ccas-marker" style="left:{{this.left}}%; top:{{this.top}}%"></div>
+    </div>
+    <p class="ccas-coords">{{this.coords}}</p>
+    <div class="ccas-tf">
+      <button type="button" data-action="transform" data-op="-90" data-tooltip-text="{{localize 'CCAS.Editor.RotL90'}}"><i class="fa-solid fa-rotate-left"></i></button>
+      <input type="number" class="ccas-rot" min="-360" max="360" step="1" value="{{this.rot}}" data-tooltip-text="{{localize 'CCAS.Editor.RotDeg'}}">
+      <button type="button" data-action="transform" data-op="90" data-tooltip-text="{{localize 'CCAS.Editor.RotR90'}}"><i class="fa-solid fa-rotate-right"></i></button>
+      <button type="button" data-action="transform" data-op="flipx" data-tooltip-text="{{localize 'CCAS.Editor.FlipH'}}"><i class="fa-solid fa-left-right"></i></button>
+      <button type="button" data-action="transform" data-op="flipy" data-tooltip-text="{{localize 'CCAS.Editor.FlipV'}}"><i class="fa-solid fa-up-down"></i></button>
+      <span class="ccas-angle">{{this.angle}}</span>
+    </div>
+    <div class="ccas-preview">{{localize "CCAS.Editor.TestArea"}}</div>
+    <button type="button" data-action="reset">
+      <i class="fa-solid fa-rotate-left"></i> {{localize "CCAS.Editor.Reset"}}
+    </button>
+    {{else}}
+    <p class="ccas-no-image">{{localize "CCAS.Editor.NoImage"}}</p>
+    {{/if}}
+  </fieldset>
+  {{/each}}
+</div>
+<footer class="form-footer">
+  <button type="button" data-action="save">
+    <i class="fa-solid fa-floppy-disk"></i> {{localize "CCAS.Editor.Save"}}
+  </button>
+</footer>
+</div>

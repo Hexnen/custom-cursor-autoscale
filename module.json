@@ -1,0 +1,37 @@
+{
+  "id": "custom-cursor-autoscale",
+  "title": "Custom Cursor Autoscale",
+  "description": "Custom mouse cursors with automatic downscaling to a browser-safe size. Ships with a knight cursor pack.",
+  "version": "1.3.2",
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14"
+  },
+  "authors": [
+    {
+      "name": "santa"
+    }
+  ],
+  "esmodules": [
+    "scripts/module.mjs"
+  ],
+  "styles": [
+    "styles/module.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    },
+    {
+      "lang": "pl",
+      "name": "Polski",
+      "path": "lang/pl.json"
+    }
+  ],
+  "url": "https://github.com/Hexnen/custom-cursor-autoscale",
+  "manifest": "https://github.com/Hexnen/custom-cursor-autoscale/releases/latest/download/module.json",
+  "download": "https://github.com/Hexnen/custom-cursor-autoscale/releases/download/v1.3.2/module.zip",
+  "bugs": "https://github.com/Hexnen/custom-cursor-autoscale/issues"
+}

@@ -1,0 +1,110 @@
+/* Instant grab feedback when clicking a Dice So Nice die: beats PIXI's inline
+ * cursor writes on the board canvas because stylesheet !important wins over
+ * non-important inline styles. */
+[data-ccas-grab] {
+  cursor: var(--cursor-grab-down) !important;
+}
+
+.ccas-hotspot-editor .ccas-panels {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.ccas-hotspot-editor .ccas-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ccas-hotspot-editor .ccas-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: crosshair;
+  /* checkerboard so transparency is visible */
+  background:
+    repeating-conic-gradient(#00000022 0% 25%, #ffffff22 0% 50%)
+    50% / 16px 16px;
+  border: 1px solid var(--color-border, #888);
+  border-radius: 4px;
+}
+
+.ccas-hotspot-editor .ccas-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  border: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.ccas-hotspot-editor .ccas-marker {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background:
+    linear-gradient(#f33, #f33) 50% 0 / 1px 100% no-repeat,
+    linear-gradient(#f33, #f33) 0 50% / 100% 1px no-repeat;
+  filter: drop-shadow(0 0 1px #fff);
+}
+
+.ccas-hotspot-editor .ccas-coords {
+  margin: 0;
+  font-family: var(--font-monospace, monospace);
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.ccas-hotspot-editor .ccas-tf {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
+.ccas-hotspot-editor .ccas-tf button {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 4px;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.ccas-hotspot-editor .ccas-tf input.ccas-rot {
+  flex: 0 0 3.6em;
+  min-width: 3.6em;
+  height: auto;
+  padding: 2px 2px;
+  text-align: center;
+  font-size: 0.8rem;
+}
+
+.ccas-hotspot-editor .ccas-angle {
+  flex: 0 0 auto;
+  min-width: 3.2em;
+  text-align: center;
+  font-family: var(--font-monospace, monospace);
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.ccas-hotspot-editor .ccas-preview {
+  width: 100%;
+  padding: 0.75rem 0.25rem;
+  text-align: center;
+  font-size: 0.8rem;
+  border: 1px dashed var(--color-border, #888);
+  border-radius: 4px;
+  opacity: 0.9;
+}
+
+.ccas-hotspot-editor .ccas-no-image {
+  opacity: 0.7;
+  font-style: italic;
+}
