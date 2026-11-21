@@ -221,10 +221,14 @@ Hooks.once("ready", async () => {
  * loads, so an older rebuild could otherwise finish last and commit stale cursors. */
 let rebuildGen = 0;
 
+/* Failed paths last reported to the GM, so resize rebuilds do not repeat the same warning. */
+let lastFailWarning = "";
+
 async function rebuild() {
   const gen = ++rebuildGen;
   const maxSize = effectiveMaxSize();
   const next = {};
+  const failed = [];
   for (const c of CURSORS) {
     const path = resolveCursorPath(c.key);
     if (!path) continue;
@@ -232,6 +236,7 @@ async function rebuild() {
       next[c.key] = await buildCursorValue(c.key, path, maxSize, getHotspot(c.key), getTransform(c.key));
     } catch (err) {
       console.error(`${MODULE_ID} | Failed to load cursor image "${path}"`, err);
+      failed.push(path);
     }
     if (gen !== rebuildGen) return;
   }
@@ -242,6 +247,17 @@ async function rebuild() {
   if (typeof game.configureCursors === "function") game.configureCursors();
   else applyVars();
   syncDetachedWindows();
+  reportFailedImages(failed);
+}
+
+/* A missing, renamed or unreadable image silently falls back to the system cursor on every
+ * client. Tell the GM (only the GM: players cannot fix it) once per distinct set of paths. */
+function reportFailedImages(failed) {
+  const key = failed.join("|");
+  if (key === lastFailWarning) return;
+  lastFailWarning = key;
+  if (!failed.length || !game.user?.isGM) return;
+  ui.notifications?.warn(game.i18n.format("CCAS.Warn.ImageFailed", { paths: failed.join(", ") }));
 }
 
 /* v14 detached (popped-out) windows get <html> attributes copied only in Game#configureUI,
@@ -567,7 +583,12 @@ function updateDebugBadge(short, elTag, ours) {
 function copyDebugHistory() {
   const text = debugFull.join("\n") || "(pusta historia)";
   console.log(`${MODULE_ID} | cursor history:\n${text}`);
-  navigator.clipboard?.writeText(text)
+  /* game.clipboard falls back to execCommand("copy") where navigator.clipboard is missing
+   * (plain-http LAN hosts are not a secure context), so the copy no longer fails silently. */
+  const copy = game.clipboard?.copyPlainText
+    ? game.clipboard.copyPlainText(text)
+    : navigator.clipboard?.writeText(text) ?? Promise.reject(new Error("no clipboard"));
+  copy
     .then(() => ui.notifications.info(`${MODULE_ID} | historia kursora skopiowana do schowka (${debugFull.length} wpisów)`))
     .catch(() => ui.notifications.warn(`${MODULE_ID} | nie udało się skopiować — historia jest w konsoli`));
 }

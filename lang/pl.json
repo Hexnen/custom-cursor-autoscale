@@ -37,5 +37,6 @@
   "CCAS.Settings.grabDown.Hint": "Widoczny podczas faktycznego trzymania/przeciągania (np. złapanej kości). Zostaw puste, aby użyć obrazka chwytania.",
   "CCAS.Cursor.grabDown": "Trzymający (wciśnięty)",
   "CCAS.Pack.Invincible": "Superbohaterski (klimat Invincible)",
-  "CCAS.Pack.InvincibleBrutal": "Superbohaterski — brutalny tusz (klimat Invincible)"
+  "CCAS.Pack.InvincibleBrutal": "Superbohaterski — brutalny tusz (klimat Invincible)",
+  "CCAS.Warn.ImageFailed": "Nie udało się wczytać obrazka kursora: {paths}. Zamiast niego widać kursor systemowy; sprawdź ścieżkę w ustawieniach modułu."
 }

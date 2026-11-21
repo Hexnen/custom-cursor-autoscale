@@ -37,5 +37,6 @@
   "CCAS.Settings.grabDown.Hint": "Shown while actually holding/dragging (e.g. a grabbed die). Leave empty to reuse the grab image.",
   "CCAS.Cursor.grabDown": "Grabbing (held)",
   "CCAS.Pack.Invincible": "Superhero (Invincible vibe)",
-  "CCAS.Pack.InvincibleBrutal": "Superhero — brutal ink (Invincible vibe)"
+  "CCAS.Pack.InvincibleBrutal": "Superhero — brutal ink (Invincible vibe)",
+  "CCAS.Warn.ImageFailed": "Could not load cursor image(s): {paths}. The system cursor is shown instead; check the path in the module settings."
 }
