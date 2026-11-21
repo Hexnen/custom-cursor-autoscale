@@ -26,6 +26,8 @@
   "CCAS.Cursor.grab": "Chwytający",
   "CCAS.Keybind.Debug.Name": "Przełącz plakietkę debugowania kursora",
   "CCAS.Keybind.Debug.Hint": "Pokazuje plakietkę przy myszy z informacją, jakiego kursora używa wskazywany element.",
+  "CCAS.Keybind.CopyHistory.Name": "Kopiuj historię debugowania kursora",
+  "CCAS.Keybind.CopyHistory.Hint": "Gdy znaczek debugowania kursora jest włączony: kopiuje całą historię kursora do schowka (i wypisuje ją w konsoli).",
   "CCAS.Editor.RotL90": "Obróć 90° w lewo",
   "CCAS.Editor.RotR90": "Obróć 90° w prawo",
   "CCAS.Editor.FlipH": "Odbij w poziomie",

@@ -26,6 +26,8 @@
   "CCAS.Cursor.grab": "Grab",
   "CCAS.Keybind.Debug.Name": "Toggle cursor debug badge",
   "CCAS.Keybind.Debug.Hint": "Shows a badge following the mouse that reports which cursor the hovered element uses.",
+  "CCAS.Keybind.CopyHistory.Name": "Copy cursor debug history",
+  "CCAS.Keybind.CopyHistory.Hint": "While the cursor debug badge is on: copies the full cursor history to the clipboard (and logs it).",
   "CCAS.Editor.RotL90": "Rotate 90° left",
   "CCAS.Editor.RotR90": "Rotate 90° right",
   "CCAS.Editor.FlipH": "Flip horizontally",

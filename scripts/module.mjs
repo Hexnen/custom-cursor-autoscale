@@ -408,7 +408,8 @@ function onDieAffordance(event) {
  * Diagnostics: press Ctrl+Alt+D (or run ccasDebug() in the console) to toggle a
  * badge that follows the mouse and reports which cursor the hovered element
  * resolves to. (A chat command won't do: the v13+ parser rejects unknown
- * /commands before any hook can intercept them.) */
+ * /commands before any hook can intercept them.) While it is on, Ctrl+Alt+H copies
+ * the full cursor history to the clipboard. */
 
 let debugEl = null;
 
@@ -422,6 +423,16 @@ Hooks.once("init", () => {
       return true;
     }
   });
+  game.keybindings.register(MODULE_ID, "copyHistory", {
+    name: "CCAS.Keybind.CopyHistory.Name",
+    hint: "CCAS.Keybind.CopyHistory.Hint",
+    editable: [{ key: "KeyH", modifiers: ["Control", "Alt"] }],
+    onDown: () => {
+      if (!debugEl) return false;
+      copyDebugHistory();
+      return true;
+    }
+  });
 });
 
 window.ccasDebug = () => toggleCursorDebug();
@@ -431,7 +442,6 @@ function toggleCursorDebug() {
     debugEl.remove();
     debugEl = null;
     document.removeEventListener("pointermove", onDebugMove, true);
-    document.removeEventListener("keydown", onDebugKey, true);
     cancelAnimationFrame(debugRaf);
     return;
   }
@@ -445,7 +455,6 @@ function toggleCursorDebug() {
   debugHistory.length = 0;
   debugLast = null;
   document.addEventListener("pointermove", onDebugMove, true);
-  document.addEventListener("keydown", onDebugKey, true);
   debugRaf = requestAnimationFrame(debugSample);
   const v = game.modules.get(MODULE_ID)?.version;
   ui.notifications.info(`${MODULE_ID} v${v} | debug on (dpr ${window.devicePixelRatio})`);
@@ -506,12 +515,10 @@ function updateDebugBadge(short, elTag, ours) {
   debugEl.style.background = ours ? "#075c2ccc" : "#8a1f1fcc";
 }
 
-/* With the badge active, pressing "c" copies the full cursor history to the clipboard
- * (and logs it), so it can be pasted instead of retyped. */
-function onDebugKey(event) {
-  if (event.key !== "c" || event.ctrlKey || event.altKey || event.metaKey) return;
-  const t = event.target;
-  if (t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA"].includes(t.tagName))) return;
+/* With the badge active, Ctrl+Alt+H (the rebindable "copyHistory" keybinding) copies the
+ * full cursor history to the clipboard (and logs it), so it can be pasted instead of
+ * retyped. It used to be a raw bare "c" listener, which also fired core's characterSheet. */
+function copyDebugHistory() {
   const text = debugFull.join("\n") || "(pusta historia)";
   console.log(`${MODULE_ID} | cursor history:\n${text}`);
   navigator.clipboard?.writeText(text)
