@@ -594,6 +594,15 @@ class HotspotEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       stage.addEventListener("pointerdown", event => this.#onPick(event, stage));
     }
     for (const panel of this.element.querySelectorAll(".ccas-panel")) {
+      /* The image is letterboxed inside the square stage (small or non-square art, rotated
+       * bounding boxes), so the marker must be re-placed whenever the image (re)loads. */
+      const stageImg = panel.querySelector(".ccas-stage img");
+      const place = () => {
+        const frac = this.#hotspots[panel.dataset.key];
+        if (frac) this.#placeMarker(panel, frac);
+      };
+      stageImg?.addEventListener("load", place);
+      if (stageImg?.complete) place();
       panel.querySelector(".ccas-rot")?.addEventListener("change", event => {
         const tf = this.#transforms[panel.dataset.key];
         tf.rot = ((Math.round(Number(event.target.value) || 0) % 360) + 360) % 360;
@@ -636,6 +645,8 @@ class HotspotEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   #onPick(event, stage) {
     const img = stage.querySelector("img");
     const rect = img.getBoundingClientRect();
+    /* Image not laid out (still loading / failed): a pick would store NaN fractions. */
+    if (!rect.width || !rect.height) return;
     const frac = {
       x: Math.clamp((event.clientX - rect.left) / rect.width, 0, 1),
       y: Math.clamp((event.clientY - rect.top) / rect.height, 0, 1)
@@ -646,11 +657,25 @@ class HotspotEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   #refreshPanel(panel, frac) {
-    const marker = panel.querySelector(".ccas-marker");
-    marker.style.left = `${frac.x * 100}%`;
-    marker.style.top = `${frac.y * 100}%`;
+    this.#placeMarker(panel, frac);
     panel.querySelector(".ccas-coords").textContent = this.#coordsText(frac);
     this.#updatePreview(panel);
+  }
+
+  /* Picks are measured on the image's own box, which is centred (and possibly smaller
+   * than / not as wide as) the square stage, so place the marker on that box too. The
+   * stage is the marker's containing block and the image's offsetParent. */
+  #placeMarker(panel, frac) {
+    const marker = panel.querySelector(".ccas-marker");
+    const img = panel.querySelector(".ccas-stage img");
+    if (!marker) return;
+    if (img?.offsetWidth && img.offsetHeight) {
+      marker.style.left = `${img.offsetLeft + frac.x * img.offsetWidth}px`;
+      marker.style.top = `${img.offsetTop + frac.y * img.offsetHeight}px`;
+    } else {
+      marker.style.left = `${frac.x * 100}%`;
+      marker.style.top = `${frac.y * 100}%`;
+    }
   }
 
   #coordsText(frac) {
