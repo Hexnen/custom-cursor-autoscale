@@ -241,6 +241,25 @@ async function rebuild() {
   }
   if (typeof game.configureCursors === "function") game.configureCursors();
   else applyVars();
+  syncDetachedWindows();
+}
+
+/* v14 detached (popped-out) windows get <html> attributes copied only in Game#configureUI,
+ * so a rebuild alone (setting change, resize) would leave them on the old cursors. Copy just
+ * the --cursor-* variables, not the whole style (that could carry an armed grab cursor). */
+function syncDetachedWindows() {
+  const windows = foundry.applications.detached?.windows;
+  if (!windows?.size) return;
+  const src = document.documentElement.style;
+  for (const entry of windows.values()) {
+    const dst = entry?.window?.document?.documentElement?.style;
+    if (!dst) continue;
+    for (const name of ["default", "default-down", "pointer", "pointer-down", "grab", "grab-down"]) {
+      const value = src.getPropertyValue(`--cursor-${name}`);
+      if (value) dst.setProperty(`--cursor-${name}`, value);
+      else dst.removeProperty(`--cursor-${name}`);
+    }
+  }
 }
 
 function effectiveMaxSize() {
@@ -278,7 +297,7 @@ function applyVars() {
 }
 
 async function buildCursorValue(key, path, maxSize, frac, tf = IDENTITY_TF) {
-  const src = foundry.utils.getRoute(path);
+  const src = routeOf(path);
   let img = await loadImage(src);
   let url = src;
   let w = img.width;
@@ -320,9 +339,21 @@ function transformImage(img, tf) {
   return canvas;
 }
 
+/* Paths from the file picker can be absolute URLs (S3 buckets, The Forge asset library) or
+ * data: URLs; getRoute() would turn those into a broken "/https:/…" path under the server. */
+function routeOf(path) {
+  return /^([a-z][a-z0-9+.-]*:|\/\/)/i.test(path) ? path : foundry.utils.getRoute(path);
+}
+
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    /* Cross-origin art must be loaded with CORS, or the canvas used for transforms and
+     * downscaling is tainted and toDataURL() throws. */
+    try {
+      const url = new URL(src, window.location.href);
+      if (url.protocol.startsWith("http") && url.origin !== window.location.origin) img.crossOrigin = "anonymous";
+    } catch {}
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Could not load ${src}`));
     img.src = src;
@@ -577,7 +608,7 @@ class HotspotEditor extends HandlebarsApplicationMixin(ApplicationV2) {
       return {
         key: c.key,
         label: game.i18n.localize(`CCAS.Cursor.${c.key}`),
-        src: path ? foundry.utils.getRoute(path) : null,
+        src: path ? routeOf(path) : null,
         left: frac.x * 100,
         top: frac.y * 100,
         coords: this.#coordsText(frac),
@@ -626,7 +657,7 @@ class HotspotEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const token = (this.#stageToken[key] ?? 0) + 1;
     this.#stageToken[key] = token;
     try {
-      const img = await loadImage(foundry.utils.getRoute(path));
+      const img = await loadImage(routeOf(path));
       if (this.#stageToken[key] !== token) return;
       imgEl.src = isIdentity(tf) ? img.src : transformImage(img, tf).toDataURL("image/png");
       const label = panel.querySelector(".ccas-angle");
