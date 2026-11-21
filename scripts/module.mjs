@@ -29,6 +29,13 @@ function defaultHotspots() {
   return Object.fromEntries(CURSORS.map(c => [c.key, { ...c.frac }]));
 }
 
+/* Exactly one client performs shared world-setting writes; with several GMs online every
+ * GM would otherwise run the same writes (and re-trigger onChange) in parallel. */
+function isPrimaryGM() {
+  const active = game.users.activeGM;
+  return active ? active.isSelf : game.user.isGM;
+}
+
 function resolveCursorPath(key) {
   return game.settings.get(MODULE_ID, key);
 }
@@ -84,7 +91,7 @@ Hooks.once("init", () => {
     /* Selecting a bundled pack copies its paths into the path settings and resets
      * hotspots to the pack defaults. Only the GM writes, to avoid write races. */
     onChange: async pack => {
-      if (PACKS.includes(pack) && game.user.isGM) {
+      if (PACKS.includes(pack) && isPrimaryGM()) {
         for (const c of CURSORS) await game.settings.set(MODULE_ID, c.key, packPath(pack, c.key));
         await game.settings.set(MODULE_ID, "hotspots", defaultHotspots());
       }
@@ -147,7 +154,7 @@ Hooks.once("init", () => {
 Hooks.once("ready", async () => {
   /* Self-heal: a bundled pack is selected but some path settings are blank (e.g. saved
    * by an older version of this module) — fill them from the pack. */
-  if (game.user.isGM) {
+  if (isPrimaryGM()) {
     const pack = game.settings.get(MODULE_ID, "pack");
     if (PACKS.includes(pack)) {
       for (const c of CURSORS) {
@@ -210,7 +217,33 @@ Hooks.once("ready", async () => {
   rebuild();
 });
 
+/* Generation counter: rebuilds overlap (resize + setting change), and each awaits image
+ * loads, so an older rebuild could otherwise finish last and commit stale cursors. */
+let rebuildGen = 0;
+
 async function rebuild() {
+  const gen = ++rebuildGen;
+  const maxSize = effectiveMaxSize();
+  const next = {};
+  for (const c of CURSORS) {
+    const path = resolveCursorPath(c.key);
+    if (!path) continue;
+    try {
+      next[c.key] = await buildCursorValue(c.key, path, maxSize, getHotspot(c.key), getTransform(c.key));
+    } catch (err) {
+      console.error(`${MODULE_ID} | Failed to load cursor image "${path}"`, err);
+    }
+    if (gen !== rebuildGen) return;
+  }
+  for (const c of CURSORS) {
+    if (next[c.key]) built[c.key] = next[c.key];
+    else delete built[c.key];
+  }
+  if (typeof game.configureCursors === "function") game.configureCursors();
+  else applyVars();
+}
+
+function effectiveMaxSize() {
   /* Two Chromium safeguards silently swap large custom cursors for system ones:
    * - physical size (CSS px × devicePixelRatio) above 128 px is never rendered;
    * - anti-spoofing: cursors larger than 32×32 CSS px are HIDDEN whenever their
@@ -220,19 +253,7 @@ async function rebuild() {
   const isChromium = !!window.chrome;
   const dprLimit = Math.max(16, Math.floor(128 / (window.devicePixelRatio || 1)));
   const edgeSafe = isChromium ? 32 : dprLimit;
-  const maxSize = Math.min(game.settings.get(MODULE_ID, "maxSize") || 32, edgeSafe, dprLimit);
-  for (const c of CURSORS) {
-    delete built[c.key];
-    const path = resolveCursorPath(c.key);
-    if (!path) continue;
-    try {
-      built[c.key] = await buildCursorValue(c.key, path, maxSize, getHotspot(c.key), getTransform(c.key));
-    } catch (err) {
-      console.error(`${MODULE_ID} | Failed to load cursor image "${path}"`, err);
-    }
-  }
-  if (typeof game.configureCursors === "function") game.configureCursors();
-  else applyVars();
+  return Math.min(game.settings.get(MODULE_ID, "maxSize") || 32, edgeSafe, dprLimit);
 }
 
 function applyVars() {
@@ -477,8 +498,11 @@ function recordDebug(effective, el) {
 
 function updateDebugBadge(short, elTag, ours) {
   if (!debugEl) return;
-  debugEl.innerHTML = `${elTag} → ${short}`
-    + `<br><span style="opacity:.75">${debugHistory.join(" · ")}</span>`;
+  /* textContent, not innerHTML: element ids/classes come from page content. */
+  const line = document.createElement("span");
+  line.style.opacity = ".75";
+  line.textContent = debugHistory.join(" · ");
+  debugEl.replaceChildren(`${elTag} → ${short}`, document.createElement("br"), line);
   debugEl.style.background = ours ? "#075c2ccc" : "#8a1f1fcc";
 }
 
@@ -533,6 +557,8 @@ class HotspotEditor extends HandlebarsApplicationMixin(ApplicationV2) {
   /* Working copies; persisted only on Save. */
   #hotspots;
   #transforms;
+  #stageToken = {};
+  #previewToken = {};
 
   async _prepareContext(options) {
     const context = await super._prepareContext(options);
@@ -580,8 +606,12 @@ class HotspotEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const imgEl = panel.querySelector(".ccas-stage img");
     if (!path || !imgEl) return;
     const tf = this.#transforms[key];
+    /* Rapid rotate/flip clicks start overlapping loads; only the newest may paint. */
+    const token = (this.#stageToken[key] ?? 0) + 1;
+    this.#stageToken[key] = token;
     try {
       const img = await loadImage(foundry.utils.getRoute(path));
+      if (this.#stageToken[key] !== token) return;
       imgEl.src = isIdentity(tf) ? img.src : transformImage(img, tf).toDataURL("image/png");
       const label = panel.querySelector(".ccas-angle");
       if (label) label.textContent = this.#angleText(tf);
@@ -627,8 +657,11 @@ class HotspotEditor extends HandlebarsApplicationMixin(ApplicationV2) {
     const preview = panel.querySelector(".ccas-preview");
     if (!path || !preview) return;
     try {
-      const maxSize = game.settings.get(MODULE_ID, "maxSize") || 32;
-      const value = await buildCursorValue(key, path, maxSize, this.#hotspots[key], this.#transforms[key]);
+      /* Same clamp as the live cursors, so the preview matches what players will see. */
+      const token = (this.#previewToken[key] ?? 0) + 1;
+      this.#previewToken[key] = token;
+      const value = await buildCursorValue(key, path, effectiveMaxSize(), this.#hotspots[key], this.#transforms[key]);
+      if (this.#previewToken[key] !== token) return;
       preview.style.cursor = value.up;
     } catch (err) {
       console.error(`${MODULE_ID} | Preview failed for "${path}"`, err);
