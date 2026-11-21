@@ -345,15 +345,28 @@ function routeOf(path) {
   return /^([a-z][a-z0-9+.-]*:|\/\/)/i.test(path) ? path : foundry.utils.getRoute(path);
 }
 
-function loadImage(src) {
+async function loadImage(src) {
+  /* Cross-origin art must be loaded with CORS, or the canvas used for transforms and
+   * downscaling is tainted and toDataURL() throws. A host without CORS headers rejects
+   * that request, so retry plainly: a small untransformed image still works as a CSS
+   * cursor (no canvas involved); otherwise the canvas step fails and is reported. */
+  let crossOrigin = false;
+  try {
+    const url = new URL(src, window.location.href);
+    crossOrigin = url.protocol.startsWith("http") && url.origin !== window.location.origin;
+  } catch {}
+  if (crossOrigin) {
+    try {
+      return await loadImageOnce(src, "anonymous");
+    } catch {}
+  }
+  return loadImageOnce(src, null);
+}
+
+function loadImageOnce(src, crossOrigin) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    /* Cross-origin art must be loaded with CORS, or the canvas used for transforms and
-     * downscaling is tainted and toDataURL() throws. */
-    try {
-      const url = new URL(src, window.location.href);
-      if (url.protocol.startsWith("http") && url.origin !== window.location.origin) img.crossOrigin = "anonymous";
-    } catch {}
+    if (crossOrigin) img.crossOrigin = crossOrigin;
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Could not load ${src}`));
     img.src = src;
