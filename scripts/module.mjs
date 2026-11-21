@@ -420,7 +420,8 @@ function onPointerOver(event) {
   if (keyword === "auto" && style.userSelect === "none") keyword = "default";
   const varName = KEYWORD_VARS[keyword];
   if (!varName) return;
-  if (!built[keyword === "grabbing" ? "grab" : keyword]) return;
+  /* "grabbing" maps to --cursor-grab-down, which applyVars fills from grabDown or grab. */
+  if (!(keyword === "grabbing" ? built.grabDown ?? built.grab : built[keyword])) return;
   if (!inlineBackup.has(el)) inlineBackup.set(el, el.style.cursor);
   el.style.cursor = `var(--cursor-${varName})`;
 }
@@ -437,7 +438,8 @@ function onPointerOut(event) {
  * inline writes lose to it, so PIXI re-setting the board's inline cursor during
  * the press cannot undo the stamp. No property patching involved. */
 function onDieAffordance(event) {
-  if (!built.grab) return;
+  /* The stamp shows --cursor-grab-down, which exists when either grabDown or grab is built. */
+  if (!(built.grabDown ?? built.grab)) return;
   if (event.type === "pointerdown") {
     if (!game.dice3d?.box?.inputHandler?.hoveredDie) return;
     const el = event.composedPath()[0];
