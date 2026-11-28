@@ -1,6 +1,6 @@
 {
   "id": "custom-cursor-autoscale",
-  "title": "Custom Cursor Autoscale",
+  "title": "Moinen's Custom Cursor Autoscale",
   "description": "Custom mouse cursors with automatic downscaling to a browser-safe size. Ships with a knight cursor pack.",
   "version": "1.3.8",
   "compatibility": {
